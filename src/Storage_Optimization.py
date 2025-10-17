@@ -900,46 +900,9 @@ class StorageOptimization:
                       f"{rebalance['net_benefit']:>11,.0f}€")
         
         # DETAILED TRANSACTION DISPLAY
-        self.display_trading_operations(rebalancing_summary)
+        #self.display_trading_operations(rebalancing_summary)
         
-   
-    def display_trading_operations(self, rebalancing_summary: List):
-        """Display COMPLETE trading operations with ACTUAL SALES"""
-        print(f"\n📋 COMPLETE TRADING OPERATIONS - WITH REAL SALES")
-        print(f"{'='*80}")
         
-        for i, rebalance in enumerate(rebalancing_summary[:10], 1):
-            print(f"\n🔄 REBALANCE {i} - {rebalance['date'].strftime('%Y-%m-%d')}:")
-            print(f"    📊 Portfolio Value: {rebalance['old_intrinsic']:,.0f}€ → {rebalance['new_intrinsic']:,.0f}€")
-            print(f"    💰 REALIZED PnL: {rebalance['realized_pnl']:,.0f}€")
-            print(f"    🎯 Net Benefit: {rebalance['net_benefit']:,.0f}€")
-            
-            # NOW WE HAVE REAL SALES
-            print(f"    🔴 POSITIONS CLOSED:")
-            if rebalance['actual_sales']:
-                for sale in rebalance['actual_sales']:
-                    print(f"       • {sale}")
-            else:
-                print(f"       • No positions to close")
-            
-            print(f"    🟢 NEW POSITIONS OPENED:")
-            if rebalance['new_openings']:
-                for opening in rebalance['new_openings']:
-                    print(f"       • {opening}")
-            else:
-                print(f"       • No new positions")
-            
-            # Strategy analysis
-            if rebalance['realized_pnl'] > 0 and len(rebalance['new_openings']) > 0:
-                print(f"    🏆 STRATEGY: Realized gains + portfolio rotation")
-            elif rebalance['realized_pnl'] > 0:
-                print(f"    💵 STRATEGY: Pure profit taking")
-            elif len(rebalance['new_openings']) > 0:
-                print(f"    🔄 STRATEGY: Portfolio reallocation")
-            else:
-                print(f"    ⚡ STRATEGY: Portfolio optimization")
-            
-            print(f"    {'─'*50}")
             
     def _parse_detailed_trades_complete(self, trades_str: str) -> List[Dict]:
         """Parse ALL trades - VERSION SIMPLE ET EFFICACE"""
@@ -1021,3 +984,42 @@ class StorageOptimization:
         
         return trades
 
+#Optional :
+    
+    def display_trading_operations(self, rebalancing_summary: List):
+        """Display COMPLETE trading operations with ACTUAL SALES"""
+        print(f"\n📋 COMPLETE TRADING OPERATIONS - WITH REAL SALES")
+        print(f"{'='*80}")
+        
+        for i, rebalance in enumerate(rebalancing_summary[:10], 1):
+            print(f"\n🔄 REBALANCE {i} - {rebalance['date'].strftime('%Y-%m-%d')}:")
+            print(f"    📊 Portfolio Value: {rebalance['old_intrinsic']:,.0f}€ → {rebalance['new_intrinsic']:,.0f}€")
+            print(f"    💰 REALIZED PnL: {rebalance['realized_pnl']:,.0f}€")
+            print(f"    🎯 Net Benefit: {rebalance['net_benefit']:,.0f}€")
+            
+            # NOW WE HAVE REAL SALES
+            print(f"    🔴 POSITIONS CLOSED:")
+            if rebalance['actual_sales']:
+                for sale in rebalance['actual_sales']:
+                    print(f"       • {sale}")
+            else:
+                print(f"       • No positions to close")
+            
+            print(f"    🟢 NEW POSITIONS OPENED:")
+            if rebalance['new_openings']:
+                for opening in rebalance['new_openings']:
+                    print(f"       • {opening}")
+            else:
+                print(f"       • No new positions")
+            
+            # Strategy analysis
+            if rebalance['realized_pnl'] > 0 and len(rebalance['new_openings']) > 0:
+                print(f"    🏆 STRATEGY: Realized gains + portfolio rotation")
+            elif rebalance['realized_pnl'] > 0:
+                print(f"    💵 STRATEGY: Pure profit taking")
+            elif len(rebalance['new_openings']) > 0:
+                print(f"    🔄 STRATEGY: Portfolio reallocation")
+            else:
+                print(f"    ⚡ STRATEGY: Portfolio optimization")
+            
+            print(f"    {'─'*50}")
