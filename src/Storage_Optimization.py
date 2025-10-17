@@ -31,10 +31,10 @@ class StorageOptimization:
             'X': {'month': 11, 'name': 'Nov'},  'Z': {'month': 12, 'name': 'Dec'}
         }
         
-        # Cache pour les données
+        # Data cache
         self._data = None
         
-        # Configuration des contrats composites
+        # Configuring composite contracts
         self.composite_contracts = {
             'Q425': ['Oct25', 'Nov25', 'Dec25'],
             'Q126': ['Jan26', 'Feb26', 'Mar26'],
@@ -98,7 +98,7 @@ class StorageOptimization:
                 try:
                     df = pd.read_csv(file_path)
                     
-                    # Recherche des colonnes nécessaires
+                    # Search for the necessary columns
                     date_col = self._find_column(df, ['time', 'date', 'timestamp'])
                     close_col = self._find_column(df, ['close'])
                     
@@ -106,7 +106,7 @@ class StorageOptimization:
                         print(f"Colonnes manquantes pour {filename}")
                         continue
                     
-                    # Traitement des données
+                    # Data processing
                     if df[date_col].dtype in ['int64', 'float64']:
                         df['Date'] = pd.to_datetime(df[date_col], unit='s')
                     else:
@@ -155,17 +155,17 @@ class StorageOptimization:
         month = month_mapping[month_str]
         year = 2000 + int(year_str)  # Convertir '25' en 2025
         
-        # Date du 1er du mois de livraison
+        # Date of the 1st of the month of delivery
         first_day = pd.Timestamp(year=year, month=month, day=1)
         
-        # Reculer pour trouver le 2ème jour ouvrable avant
+        # Go back to find the second business day before
         business_days_back = 0
         current_date = first_day
         
         while business_days_back < 2:
             current_date -= timedelta(days=1)
-            # Vérifier si c'est un jour ouvrable (lundi=0, dimanche=6)
-            if current_date.weekday() < 5:  # Lundi à vendredi
+            # Check if it is a working day (Monday=0, Sunday=6)
+            if current_date.weekday() < 5:  # Lundi to vendredi
                 business_days_back += 1
         
         return current_date
@@ -194,13 +194,13 @@ class StorageOptimization:
         self._load_data()
         
         if contract_type == 'monthly':
-            # Récupérer tous les contrats mensuels disponibles pour le marché
+            # Retrieve all available monthly contracts for the market
             available_contracts = [
                 contract for contract in self._data.keys() 
                 if contract.startswith(market)
             ]
             
-            # Fonction pour extraire la date de tri d'un contrat mensuel
+            # Function to extract the sort date from a monthly contract
             def get_contract_sort_date(contract: str) -> pd.Timestamp:
                 # Extraire la partie après le marché (ex: TTFOct25 -> Oct25)
                 contract_name = contract[len(market):]
@@ -211,10 +211,10 @@ class StorageOptimization:
             sorted_contracts = sorted(available_contracts, key=get_contract_sort_date)
             
         elif contract_type == 'composite':
-            # Récupérer les contrats composites disponibles
+            # Retrieve available composite contracts
             sorted_contracts = []
             
-            # Fonction pour extraire la date de tri d'un composite
+            # Function to extract the sort date from a composite
             def get_composite_sort_date(composite_name: str) -> pd.Timestamp:
                 first_month = self.composite_contracts[composite_name][0]
                 expiry = self._get_monthly_expiration_date(first_month)
@@ -230,13 +230,13 @@ class StorageOptimization:
         else:
             raise ValueError(f"contract_type doit être 'monthly' ou 'composite', pas '{contract_type}'")
         
-        # Créer le DataFrame avec toutes les dates uniques
+        # Create the DataFrame with all unique dates
         all_dates = set()
         contract_data = {}
         
         for contract in sorted_contracts:
             if contract_type == 'monthly':
-                # Pour les contrats mensuels, récupérer directement les données
+                # For monthly contracts, retrieve data directly
                 contract_id = contract
                 if contract_id in self._data:
                     df = self._data[contract_id].copy()
@@ -244,22 +244,22 @@ class StorageOptimization:
                     contract_data[contract] = df.set_index('Date')['Close']
             
             elif contract_type == 'composite':
-                # Pour les composites, calculer le prix composite
+                # For composites, calculate the composite price
                 monthly_contracts = [f"{market}{m}" for m in self.composite_contracts[contract]]
                 
-                # Récupérer toutes les données mensuelles
+                # Retrieve all monthly data
                 monthly_dfs = []
                 for mc in monthly_contracts:
                     if mc in self._data:
                         monthly_dfs.append(self._data[mc].copy())
                 
                 if monthly_dfs:
-                    # Merger toutes les dates
+                     # Merge all dates
                     composite_dates = set()
                     for df in monthly_dfs:
                         composite_dates.update(df['Date'].values)
                     
-                    # Créer une série avec les prix moyens par date
+                    # Create a series with average prices by date
                     composite_series = []
                     for date in sorted(composite_dates):
                         prices = []
@@ -279,19 +279,19 @@ class StorageOptimization:
                         all_dates.update(comp_df['Date'].values)
                         contract_data[contract] = comp_df.set_index('Date')['Close']
         
-        # Créer le DataFrame final
+        # Create the final DataFrame
         if not contract_data:
             return pd.DataFrame()
         
         result_df = pd.DataFrame(index=sorted(all_dates))
         result_df.index.name = 'Date'
         
-        # Ajouter chaque contrat comme colonne
+        # Add each contract as a column
         for contract in sorted_contracts:
             if contract in contract_data:
                 result_df[contract] = contract_data[contract]
         
-        # Trier par date et supprimer les lignes entièrement vides
+        # Sort by date and delete completely empty rows
         result_df = result_df.sort_index()
         result_df = result_df.dropna(how='all')
         result_df = result_df.fillna(method='ffill')
@@ -327,10 +327,10 @@ class StorageOptimization:
         - These parameters will determine which trades are feasible
         """
         self.storage_params = {
-            'capacity_gwh': capacity_gwh,                    # Total storage capacity
+            'capacity_gwh': capacity_gwh,                                # Total storage capacity
             'max_injection_gwh_per_day': max_injection_gwh_per_day,      # How much we can inject daily
             'max_withdrawal_gwh_per_day': max_withdrawal_gwh_per_day,    # How much we can withdraw daily
-            'fixed_cost_euros': fixed_cost_euros,            # Annual fixed costs (maintenance, etc.)
+            'fixed_cost_euros': fixed_cost_euros,                        # Annual fixed costs (maintenance, etc.)
             'variable_injection_cost': variable_injection_cost,          # Cost per MWh to inject gas
             'variable_withdrawal_cost': variable_withdrawal_cost,        # Cost per MWh to withdraw gas
         }
@@ -462,10 +462,10 @@ class StorageOptimization:
             
             intrinsic_value = -result.fun  # Convert back to maximization
             
-            # ✅ CORRECTION CRUCIALE : FORCER LA VALEUR À ZÉRO SI NÉGATIVE
+            
             if intrinsic_value < 0:
                 intrinsic_value = 0
-                # Optionnel : vider les positions si valeur négative
+                
                 optimal_positions = {}
                 for contract in contracts:
                     optimal_positions[contract] = {
@@ -549,7 +549,7 @@ class StorageOptimization:
         withdrawal_cost = self.storage_costs['withdrawal_cost_per_mwh']
         fixed_cost = self.storage_params.get('fixed_cost_euros', 800000)
         
-        # 🔥 ÉTAPE 1 : DÉFINIR LES PÉRIODES
+        # DEFINE THE PERIODS
         trading_start_date = pd.Timestamp('2025-01-01')
         storage_allocation_start = pd.Timestamp('2026-04-01') 
         storage_allocation_end = pd.Timestamp('2027-03-31')
@@ -604,7 +604,7 @@ class StorageOptimization:
                 list(current_curve.keys()), injection_cost, withdrawal_cost
             )
             
-            # 🔥🔥🔥 CALCUL CORRECT DE LA VALEUR MARCHÉ ACTUELLE
+            # CALCULATION OF THE CURRENT MARKET VALUE
             current_market_value = 0
             for contract, position in current_positions.items():
                 if contract in current_curve and contract in locked_prices:
@@ -612,23 +612,23 @@ class StorageOptimization:
                     injection_volume = position.get('injection', 0)
                     withdrawal_volume = position.get('withdrawal', 0)
                     
-                    # Pour les positions D'INJECTION (achetées): (Prix actuel - Prix locké) × Volume
+                    # For INJECTION positions (purchased): (Current price - Locked price) × Volume
                     if injection_volume > 0:
                         locked_price_inj = locked_prices[contract]['injection']
                         if locked_price_inj is not None:
                             current_market_value += (current_price - locked_price_inj) * injection_volume
                     
-                    # Pour les positions DE WITHDRAWAL (vendues): (Prix locké - Prix actuel) × Volume
+                    # For WITHDRAWAL positions (sold): (Locked price - Current price) × Volume
                     if withdrawal_volume > 0:
                         locked_price_with = locked_prices[contract]['withdrawal']
                         if locked_price_with is not None:
                             current_market_value += (locked_price_with - current_price) * withdrawal_volume
             
-            # 🔥 NOUVELLE LOGIQUE : VENTES RÉELLES AVANT RECALCUL
+            # NEW LOGIC: ACTUAL SALES BEFORE RECALCULATION
             realized_pnl = 0
             actual_sales = []
             
-            # Étape 1: FERMER les positions existantes (ventes réelles)
+            # Step 1: CLOSE existing positions 
             for contract, old_pos in current_positions.items():
                 if contract in current_curve and contract in locked_prices:
                     current_price = current_curve[contract]
@@ -636,39 +636,39 @@ class StorageOptimization:
                     old_inj = old_pos.get('injection', 0)
                     old_with = old_pos.get('withdrawal', 0)
                     
-                    # VENTE RÉELLE des positions d'injection
+                    # sale of injection positions
                     if old_inj > 0:
                         locked_price_inj = locked_prices[contract]['injection']
                         sale_pnl = (current_price - locked_price_inj) * old_inj  # ✅ SANS injection_cost
                         realized_pnl += sale_pnl
                         actual_sales.append(f"SOLD {old_inj:,.0f} MWh of {contract} (injection) for {sale_pnl:,.0f}€ PnL")
                     
-                    # RACHAT RÉEL des positions de withdrawal  
+                    # buy back withdrawal positions  
                     if old_with > 0:
                         locked_price_with = locked_prices[contract]['withdrawal']
                         sale_pnl = (locked_price_with - current_price) * old_with  # ✅ SANS withdrawal_cost
                         realized_pnl += sale_pnl
                         actual_sales.append(f"BOUGHT {old_with:,.0f} MWh of {contract} (withdrawal) for {sale_pnl:,.0f}€ PnL")
             
-            # 🔥 ÉTAPE 2 : COÛTS FIXES SELON LA PÉRIODE
+            # FIXED COSTS BY PERIOD
             if current_date < storage_allocation_start:
                 # Période de trading pur - pas de coûts fixes
                 fixed_cost_proportional = 0
                 period_type = "TRADING"
             else:
-                # Période de stockage physique - coûts fixes proportionnels
+                # Physical storage period - proportional fixed costs
                 days_in_storage_period = (current_date - storage_allocation_start).days
                 fixed_cost_proportional = (fixed_cost / 365) * days_in_storage_period
                 period_type = "STORAGE"
 
-            # 🔥 CALCUL NET BASÉ SUR LES VENTES RÉELLES
+            #  NET CALCULATION BASED ON ACTUAL SALES
             net_benefit = new_intrinsic - base_intrinsic + realized_pnl - fixed_cost_proportional
 
-            # 🔥🔥🔥 STOCKAGE DES DONNÉES QUOTIDIENNES (même sans rebalance)
+            # DAILY DATA STORAGE (even without rebalancing)
             daily_data = {
                 'date': current_date,
-                'market_value': current_market_value,  # VALEUR RÉELLE du portefeuille
-                'intrinsic_value': new_intrinsic,      # VALEUR POTENTIELLE
+                'market_value': current_market_value,  # REAL VALUE of the portfolio
+                'intrinsic_value': new_intrinsic,      # POTENTIAL VALUE
                 'positions': current_positions.copy(),
                 'total_pnl': total_pnl,
                 'realized_pnl': realized_pnl,
@@ -678,7 +678,7 @@ class StorageOptimization:
             # Rebalance ONLY if profitable
             if net_benefit > 0:
                 
-                # Étape 2: OUVRIR de nouvelles positions
+                # Step 2: OPEN new positions
                 new_openings = []
                 for contract, new_pos in new_positions.items():
                     new_inj = new_pos.get('injection', 0)
@@ -694,18 +694,18 @@ class StorageOptimization:
                     'date': current_date,
                     'old_intrinsic': base_intrinsic,
                     'new_intrinsic': new_intrinsic,
-                    'realized_pnl': realized_pnl,  # 🔥 Maintenant c'est du PnL réel
+                    'realized_pnl': realized_pnl,  
                     'fixed_cost': fixed_cost_proportional,
                     'net_benefit': net_benefit,
-                    'actual_sales': actual_sales,      # 🔥 Ventes réelles
-                    'new_openings': new_openings       # 🔥 Nouveaux achats
+                    'actual_sales': actual_sales,    
+                    'new_openings': new_openings      
                 })
                 
                 # Execute rebalance
                 total_pnl += net_benefit
                 current_positions = new_positions
                 
-                # Mettre à jour locked prices avec les NOUVELLES positions
+                # Update locked prices with NEW positions
                 locked_prices = {}
                 for contract in current_curve:
                     new_inj = new_positions.get(contract, {}).get('injection', 0)
@@ -718,7 +718,7 @@ class StorageOptimization:
                 
                 base_intrinsic = new_intrinsic
             
-            # 🔥 STOCKER CHAQUE JOUR (même sans rebalance)
+            #  STORE EVERY DAY (even without rebalancing
             positions_history.append(daily_data)
         
         # Final results
@@ -798,12 +798,12 @@ class StorageOptimization:
         """
         OPTIMIZATION WITH COSTS - VERSION CORRECTE
         """
-        # Utiliser les prix bruts dans l'optimisation
+        # Use gross prices in optimization
         optimal_positions, intrinsic_value, _ = self._optimize_storage_intrinsic(
             forward_curve, capacity_mwh, max_inj_mwh_per_day, max_with_mwh_per_day, contracts
         )
         
-        # Soustraire les coûts explicitement
+        # Explicitly subtract costs
         total_injection_cost = 0
         total_withdrawal_cost = 0
         
@@ -814,13 +814,13 @@ class StorageOptimization:
             total_injection_cost += injection_volume * injection_cost
             total_withdrawal_cost += withdrawal_volume * withdrawal_cost
         
-        # Ajuster la valeur intrinsèque
+        # Adjust the intrinsic value
         adjusted_intrinsic = intrinsic_value - total_injection_cost - total_withdrawal_cost
         
-        # ✅ CORRECTION DÉFINITIVE : GARANTIR QUE LA VALEUR FINALE EST ≥ 0
+        # ENSURE THAT THE FINAL VALUE IS ≥ 0
         if adjusted_intrinsic < 0:
             adjusted_intrinsic = 0
-            # Vider les positions si non rentable
+            # Close positions if unprofitable
             optimal_positions = {}
             for contract in contracts:
                 optimal_positions[contract] = {
@@ -871,7 +871,7 @@ class StorageOptimization:
         
         initial_value = positions_history[0]['intrinsic_value']
         
-        # Calculer le PnL par période
+        # Calculate PnL per period
         trading_pnl = 0
         storage_pnl = 0
         storage_rebalances = 0
@@ -894,7 +894,7 @@ class StorageOptimization:
         print(f"       - Fixed Cost: -{fixed_cost:,.0f} €")
         print(f"    • Final Intrinsic Value: {final_value:,.0f} €")
         
-        # Calcul du profit net total
+        # Calculation of total net profit
         total_net_profit = total_pnl - fixed_cost
         print(f"    • TOTAL NET PROFIT: {total_net_profit:,.0f} €")
         if initial_value > 0:
@@ -914,7 +914,7 @@ class StorageOptimization:
                       f"{rebalance['realized_pnl']:>11,.0f}€ "
                       f"{rebalance['net_benefit']:>11,.0f}€")
         
-        # AFFICHAGE DÉTAILLÉ DES TRANSACTIONS
+        # DETAILED TRANSACTION DISPLAY
         self.display_trading_operations(rebalancing_summary)
         
    
@@ -929,7 +929,7 @@ class StorageOptimization:
             print(f"    💰 REALIZED PnL: {rebalance['realized_pnl']:,.0f}€")
             print(f"    🎯 Net Benefit: {rebalance['net_benefit']:,.0f}€")
             
-            # 🔥 MAINTENANT ON A DES VENTES RÉELLES
+            # NOW WE HAVE REAL SALES
             print(f"    🔴 POSITIONS CLOSED:")
             if rebalance['actual_sales']:
                 for sale in rebalance['actual_sales']:
@@ -963,10 +963,10 @@ class StorageOptimization:
         
         trades = []
         
-        # Sépare correctement en enlevant d'abord les virgules dans les nombres
-        clean_str = trades_str.replace(',', '')  # Enlève les virgules des montants
         
-        # Maintenant on peut split par les virgules restantes
+        clean_str = trades_str.replace(',', '')  
+        
+        
         trade_list = [trade.strip() for trade in clean_str.split(',')]
         
         for trade in trade_list:
@@ -975,9 +975,9 @@ class StorageOptimization:
                     # "Inject 175800 in TTFNov26"
                     parts = trade.split(' ')
                     amount = float(parts[1])
-                    # Tout ce qui suit "in" est le contrat
+                    # Everything following “in” is the contract.
                     in_index = parts.index('in')
-                    contract = parts[in_index + 1]  # Prend juste le mot après "in"
+                    contract = parts[in_index + 1]  
                     trades.append({
                         'action': 'INJECT', 
                         'contract': contract,
@@ -991,9 +991,9 @@ class StorageOptimization:
                     # "Withdraw 175800 from TTFJan27"
                     parts = trade.split(' ')
                     amount = float(parts[1])
-                    # Tout ce qui suit "from" est le contrat
+                    # Everything following “in” is the contract.
                     from_index = parts.index('from')
-                    contract = parts[from_index + 1]  # Prend juste le mot après "from"
+                    contract = parts[from_index + 1]  
                     trades.append({
                         'action': 'WITHDRAW', 
                         'contract': contract,
@@ -1007,9 +1007,9 @@ class StorageOptimization:
                     # "Close injection 175800 in TTFAug26"
                     parts = trade.split(' ')
                     amount = float(parts[2])
-                    # Tout ce qui suit "in" est le contrat
+                    # Everything following “in” is the contract
                     in_index = parts.index('in')
-                    contract = parts[in_index + 1]  # Prend juste le mot après "in"
+                    contract = parts[in_index + 1]  
                     trades.append({
                         'action': 'CLOSE INJECTION', 
                         'contract': contract,
@@ -1023,9 +1023,9 @@ class StorageOptimization:
                     # "Close withdrawal 175800 in TTFSep26"
                     parts = trade.split(' ')
                     amount = float(parts[2])
-                    # Tout ce qui suit "in" est le contrat
+                    # Everything following “in” is the contract
                     in_index = parts.index('in')
-                    contract = parts[in_index + 1]  # Prend juste le mot après "in"
+                    contract = parts[in_index + 1]  
                     trades.append({
                         'action': 'CLOSE WITHDRAWAL', 
                         'contract': contract,
